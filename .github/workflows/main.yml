@@ -1,0 +1,62 @@
+# Nome do seu workflow
+name: Deploy to GitHub Pages
+
+# Faz o deploy rodar quando você der 'push' na branch 'main'
+on:
+  push:
+    branches: [ "main" ] # Mude para "master" se for o nome da sua branch
+  workflow_dispatch:
+
+# Permissões necessárias para o GitHub Actions publicar no Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Permite apenas um deploy por vez
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+# O trabalho de deploy
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Pega o código do seu repositório
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      # 2. Configura o Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18 # Use a versão do Node que você usa (18 ou 20 é seguro)
+          cache: 'npm'
+
+      # 3. Instala as dependências
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Roda o script de "build" (compilação)
+      - name: Build
+        run: npm run build
+
+      # 5. Prepara o artefato (a pasta compilada) para o Pages
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      
+      # 6. Faz o upload da pasta compilada
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # É AQUI QUE VOCÊ CONFIGURA A SUA PASTA DE BUILD
+          path: './dist' # <--- MUDE AQUI para './build' se necessário
+
+      # 7. Publica o site
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
